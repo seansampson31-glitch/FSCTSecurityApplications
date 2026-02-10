@@ -1,39 +1,55 @@
-# first of all import the socket library 
-import socket             
+import socket
 
-# next create a socket object 
-s = socket.socket()         
-print ("Socket successfully created")
+server_socket = socket.socket()
+port = 12345
+server_socket.bind(('', port))
+server_socket.listen(5)
 
-# reserve a port on your computer in our 
-# case it is 12345 but it can be anything 
-port = 12345                
+print("Server is running and waiting...")
 
-# Next bind to the port 
-# we have not typed any ip in the ip field 
-# instead we have inputted an empty string 
-# this makes the server listen to requests 
-# coming from other computers on the network 
-s.bind(('', port))         
-print ("socket binded to %s" %(port)) 
+while True:
+    connection, address = server_socket.accept()
+    print("New person joined from:", address)
 
-# put the socket into listening mode 
-s.listen(5)     
-print ("socket is listening")            
+    logged_in = False
+    name = ""
+    # starting my username
 
-# a forever loop until we interrupt it or 
-# an error occurs 
-while True: 
+    while True:
+        message = connection.recv(1024).decode()
 
-# Establish connection with client. 
-  c, addr = s.accept()     
-  print ('Got connection from', addr )
+        if not message:
+            break
 
-  # send a thank you message to the client. encoding to send byte type. 
-  c.send('Thank you for connecting'.encode()) 
-  print (c.recv(1024).decode())
-  # Close the connection with the client 
-  c.close()
-  
-  # Breaking once connection closed
-  break
+        if "|" not in message:
+            connection.send("ERROR|Missing symbol".encode())
+            continue
+
+        parts = message.split("|")
+        command = parts[0]
+        content = parts[1]
+
+        if command == "HELLO":
+            name = content
+            logged_in = True
+            print(name + " signed in.")
+            connection.send(("OK|Hello " + name).encode())
+
+        elif logged_in == False:
+            connection.send("ERROR|HELLO false".encode())
+
+        elif command == "MSG":
+            print(name + " says: " + content)
+            connection.send("OK|Message sent".encode())
+
+        elif command == "EXIT":
+            print(name + " is quitting.")
+            connection.send("OK|Goodbye".encode())
+            break
+        
+        else:
+            connection.send("ERROR|Command not found".encode())
+
+    connection.close()
+    print("Connection finished.")
+    
